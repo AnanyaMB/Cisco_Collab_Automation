@@ -1,0 +1,4 @@
+Hostname,userName,Password,serviceName,certificateName
+10.X.X.X,admin,*******,CAPF,IPTWTE1C5.cisco.com.pem
+10.X.X.X,admin,*******,CallManager,IPTWTE1C4.cisco.com.pem
+20.X.X>X,admin,*******,CallManager,IPTWTE1C4.abc.com.pem
