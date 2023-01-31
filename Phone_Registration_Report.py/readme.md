@@ -2,7 +2,7 @@
     - Summary : Fetch count of registered phones in each device pool in CUCM
     - Libraries : Zeep
     - APIs used : AXL and RISPort70
-    - Problem Statement : 
+    - PROBLEM STATEMENT : 
       Device and device pool relationship is stored in CUCM database. 
       However the registration status of device is stored in RIS DB.
       Leaving no direct way to fetch the count of registered phones in a given device pool.
