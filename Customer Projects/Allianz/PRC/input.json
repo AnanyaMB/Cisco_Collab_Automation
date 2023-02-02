@@ -1,13 +1,13 @@
 {
     "UCAAS":{
-        "cucm": "10.122.32.33",
-        "user" : "admin",
-        "password" : "rtpR0bot",
+        "cucm": "x.x.x.x",
+        "user" : "xxxx",
+        "password" : "xxxx",
         "version" : "10.5"
 },
     "DI":{
-        "cucm": "10.122.32.166",
-        "user" : "admin",
-        "password" : "rtpR0bot",
+        "cucm": "x.x.x.x",
+        "user" : "xxxxx",
+        "password" : "xxxx",
         "version" : "10.5"
 }}
