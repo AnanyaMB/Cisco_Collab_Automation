@@ -1,7 +1,7 @@
 {
-    "cucm" : "x.x.x.x",
-    "user" : "xxxx",
-    "password" : "xxxx",
+    "cucm" : "10.122.32.33",
+    "user" : "admin",
+    "password" : "rtpR0bot",
     "version" : "10.5"
 
 }

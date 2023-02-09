@@ -246,11 +246,3 @@ def main():
         print("Completed Successfully - view the pre report")
 
 main()
-
-
-
-
-
-
-
-
