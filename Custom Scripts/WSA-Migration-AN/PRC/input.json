@@ -1,0 +1,13 @@
+{
+    "UCAAS":{
+        "cucm": "10.122.32.33",
+        "user" : "admin",
+        "password" : "rtpR0bot",
+        "version" : "10.5"
+},
+    "DI":{
+        "cucm": "10.127.246.124",
+        "user" : "admin",
+        "password" : "rtpR0bot",
+        "version" : "14.0"
+}}
