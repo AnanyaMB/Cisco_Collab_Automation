@@ -1,5 +1,6 @@
-from flask import Flask,render_template
 import pandas as pd
+import requests
+import time
 import os
 from lxml import etree
 from requests import Session
@@ -12,7 +13,8 @@ from zeep.exceptions import Fault
 import sys
 import json
 from threading import Thread
-
+from collections import defaultdict
+from bs4 import BeautifulSoup
 disable_warnings(InsecureRequestWarning)
 
 RIS_WSDL_FILE = 'schema/RISService70.wsdl'
@@ -45,6 +47,7 @@ DI_USERNAME = inputData['DI']['user']
 DI_PASSWORD = inputData['DI']['password']
 DI_VERSION = inputData['DI']['version']
 DI_WSDL = 'schema/'+DI_VERSION+'/AXLAPI.wsdl'
+
 
 class ThreadWithReturnValue(Thread):
     
@@ -89,7 +92,7 @@ def registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,deviceList):
 
     return (resp['SelectCmDeviceResult']['TotalDevicesFound'])
 
-def devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
+def devicesInDevicePoolZeep(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
     devicePoolList = []
     session.auth = HTTPBasicAuth( AXL_USERNAME,AXL_PASSWORD )
     transport = Transport( session = session, timeout = 10 )
@@ -125,6 +128,28 @@ def devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
     devicePoolDf = devicePoolDf.groupby('DevicePool')['Device'].apply(list).to_dict()
     return(devicePoolDf)
 
+def devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,VERSION):
+    url = "https://"+CUCM+":8443/axl/"
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"http://www.cisco.com/AXL/API/"+VERSION+"\">\n<soapenv:Header/>\n<soapenv:Body>\n<ns:executeSQLQuery>\n    <sql>select dp.name as devicepool,d.name as device from device d \n            join devicepool dp on d.fkdevicepool=dp.pkid\n            where d.tkclass = '1'\n            order by dp.name</sql>\n</ns:executeSQLQuery>\n</soapenv:Body>\n</soapenv:Envelope>"
+    headers = {
+    'Content-Type': 'text/xml'
+    }
+    response = requests.request("POST", url, headers=headers, data=payload,auth=HTTPBasicAuth(AXL_USERNAME,AXL_PASSWORD),verify=False)
+    response = response.text
+
+    soup = BeautifulSoup(response, 'xml')
+    devicepool = soup.find_all('devicepool')
+    deviceName = soup.find_all('device')
+    devicePoolList = [eachDP.text for eachDP in devicepool]
+    deviceList = [eachDevice.text for eachDevice in deviceName]
+    merged_list = [(devicePoolList[i], deviceList[i]) for i in range(0, len(deviceList))]
+    devicePoolDeviceMap = defaultdict(list)
+    for dp, device in merged_list:
+        devicePoolDeviceMap[dp].append(device)
+    devicePoolDeviceMap = dict(devicePoolDeviceMap)
+    # devicePoolDeviceMapDF = pd.DataFrame.from_dict(devicePoolDeviceMap)
+    return(devicePoolDeviceMap)
+
 def fetchDeviceCount(cucmType):
     devicePoolDict = {}
     if cucmType == "UCAAS":
@@ -133,32 +158,35 @@ def fetchDeviceCount(cucmType):
         AXL_USERNAME = UCAAS_USERNAME
         AXL_PASSWORD = UCAAS_PASSWORD
         WSDL = UCAAS_WSDL
-        devicePoolInfo = devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL)
+        VERSION = UCAAS_VERSION
+        # devicePoolInfo = devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL)
+        devicePoolInfo = devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,VERSION)
     elif cucmType == "DI":
         # DI
         CUCM = DI_CUCM
         AXL_USERNAME = DI_USERNAME
         AXL_PASSWORD = DI_PASSWORD
         WSDL = DI_WSDL
-        devicePoolInfo = devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL)
+        VERSION = DI_VERSION
+        # devicePoolInfo = devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL)
+        devicePoolInfo = devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,VERSION)
     RISRateLimit = 0
     for eachDevicePool in devicePoolInfo:
         devicePoolCount=0
         deviceList = devicePoolInfo[eachDevicePool]
         deviceBatches = [deviceList[i:i+1000] for i in range(0,len(deviceList),1000)]
         for eachBatch in deviceBatches:
-            devicePoolCount += registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,eachBatch)
             RISRateLimit+=1
-            if (RIsRateLimit%13) == 0:
-                RIsRateLimit = 0
+            if (RISRateLimit%13) == 0:
+                RISRateLimit = 0
                 time.sleep(60)
+            devicePoolCount += registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,eachBatch)
         devicePoolDict.update({eachDevicePool:devicePoolCount})
     return(devicePoolDict)
 
 def diffReport(preDict,currentDict):
     # validate if any change in devicepool count
     diffList = []
-    
     preCheckDP = list(preDict.keys())
     currentDP = list(currentDict.keys())
     if len(preCheckDP) == len(currentDP):
@@ -201,8 +229,9 @@ def main():
     DI_thread = ThreadWithReturnValue(target=fetchDeviceCount, args=('DI',))
 
     UCAAS_thread.start()
+    print("Starting to fetch registered phone per for UCAAS")
     DI_thread.start()
-
+    print("Starting to fetch registered phone per for DI")
     UCAAS_dict = UCAAS_thread.join()
     DI_dict = DI_thread.join()
 
@@ -219,7 +248,7 @@ def main():
         if eachDP in DI_DP:
             eachDPDict["DI"]= DI_dict[eachDP]
         currentDict.update({eachDP:eachDPDict})
-
+    print(currentDict)
     if diff == "True":
         diffResponse=diffReport(preDict,currentDict)
         with open('db/diff.json', 'w') as fp:
@@ -249,20 +278,3 @@ def main():
         print("Completed Successfully - view the pre report")
 
 main()
-
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/diff')
-def diff():
-    return render_template('diff.html')
-
-@app.route("/current")
-def current():
-    return render_template('post.html')
-
-if __name__ == "__main__":
-    app.run(host="127.0.0.1",port=8080)
