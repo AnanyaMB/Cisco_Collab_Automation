@@ -38,10 +38,10 @@ def registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,deviceList):
     service = client.create_service('{http://schemas.cisco.com/ast/soap}RisBinding',
     'https://'+CUCM+':8443/realtimeservice2/services/RISService70')
     CmSelectionCriteria = {
-    'MaxReturnedDevices': '10',
+    'MaxReturnedDevices': '10000',
     'DeviceClass': 'Phone',
     'Model': '255',
-    'Status': 'Unknown',
+    'Status': 'Registered',
     'NodeName': '',
     'SelectBy': 'Name',
     'SelectItems': {

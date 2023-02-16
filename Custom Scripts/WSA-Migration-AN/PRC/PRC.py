@@ -77,11 +77,9 @@ def registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,deviceList):
     'NodeName': '',
     'SelectBy': 'Name',
     'SelectItems': {
-        'item': deviceList
-    },
+        'item': deviceList},
     'Protocol': 'Any',
-    'DownloadStatus': 'Any'
-}
+    'DownloadStatus': 'Any'}
     try:
         resp = service.selectCmDeviceExt(CmSelectionCriteria=CmSelectionCriteria, StateInfo=StateInfo)
     except Fault as err:
@@ -90,7 +88,7 @@ def registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,deviceList):
 
     return (resp['SelectCmDeviceResult']['TotalDevicesFound'])
 
-def devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
+def devicesInDevicePoolZeep(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
     devicePoolList = []
     session.auth = HTTPBasicAuth( AXL_USERNAME,AXL_PASSWORD )
     transport = Transport( session = session, timeout = 10 )
@@ -125,6 +123,27 @@ def devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
     devicePoolDf = pd.DataFrame(devicePoolList, columns=['DevicePool', 'Device'])
     devicePoolDf = devicePoolDf.groupby('DevicePool')['Device'].apply(list).to_dict()
     return(devicePoolDf)
+
+def devicesInDevicePool(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
+    url = "https://"+cucm+":8443/axl/"
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"http://www.cisco.com/AXL/API/14.0\">\n<soapenv:Header/>\n<soapenv:Body>\n<ns:executeSQLQuery>\n    <sql>select dp.name as devicepool,d.name as device from device d \n            join devicepool dp on d.fkdevicepool=dp.pkid\n            where d.tkclass = '1'\n            order by dp.name</sql>\n</ns:executeSQLQuery>\n</soapenv:Body>\n</soapenv:Envelope>"
+    headers = {
+    'Content-Type': 'text/xml'
+    }
+    response = requests.request("POST", url, headers=headers, data=payload,auth=HTTPBasicAuth(user,password),verify=False)
+    response= response.text
+    soup = BeautifulSoup(response, 'xml')
+    devicepool = soup.find_all('devicepool')
+    deviceName = soup.find_all('device')
+    devicePoolList = [eachDP.text for eachDP in devicepool]
+    deviceList = [eachDevice.text for eachDevice in deviceName]
+    merged_list = [(devicePoolList[i], deviceList[i]) for i in range(0, len(deviceList))]
+
+    devicePoolDeviceMap = defaultdict(list)
+    for dp, device in merged_list:
+        devicePoolDeviceMap[dp].append(device)
+    devicePoolDeviceMapDF = pd.DataFrame(devicePoolDeviceMap)
+    return(devicePoolDeviceMapDF)
 
 def fetchDeviceCount(cucmType):
     devicePoolDict = {}
@@ -245,4 +264,4 @@ def main():
         json.dump(currentDict, fp)
         print("Completed Successfully - view the pre report")
 
-main()
+# main()
