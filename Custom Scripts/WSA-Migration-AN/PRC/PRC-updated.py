@@ -74,22 +74,23 @@ def registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,deviceList):
     service = client.create_service('{http://schemas.cisco.com/ast/soap}RisBinding',
     'https://'+CUCM+':8443/realtimeservice2/services/RISService70')
     CmSelectionCriteria = {
-    'MaxReturnedDevices': '10',
+    'MaxReturnedDevices': '10000',
     'DeviceClass': 'Phone',
     'Model': '255',
     'Status': 'Registered',
     'NodeName': '',
     'SelectBy': 'Name',
     'SelectItems': {
-        'item': deviceList},
+        'item': deviceList
+    },
     'Protocol': 'Any',
-    'DownloadStatus': 'Any'}
+    'DownloadStatus': 'Any'
+}
     try:
-        resp = service.selectCmDeviceExt(CmSelectionCriteria=CmSelectionCriteria, StateInfo=StateInfo)
+        resp = service.selectCmDevice(CmSelectionCriteria=CmSelectionCriteria, StateInfo=StateInfo)
     except Fault as err:
         print( f'Zeep error: selectCmDevice: { err }' )
         sys.exit( 1 )
-
     return (resp['SelectCmDeviceResult']['TotalDevicesFound'])
 
 def devicesInDevicePoolZeep(CUCM,AXL_USERNAME,AXL_PASSWORD,WSDL):
@@ -180,7 +181,7 @@ def fetchDeviceCount(cucmType):
             if (RISRateLimit%13) == 0:
                 RISRateLimit = 0
                 time.sleep(60)
-            devicePoolCount += registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,eachBatch)
+            devicePoolCount = devicePoolCount+registrationStatus(CUCM,AXL_USERNAME,AXL_PASSWORD,eachBatch)
         devicePoolDict.update({eachDevicePool:devicePoolCount})
     return(devicePoolDict)
 
@@ -248,13 +249,15 @@ def main():
         if eachDP in DI_DP:
             eachDPDict["DI"]= DI_dict[eachDP]
         currentDict.update({eachDP:eachDPDict})
-    print(currentDict)
     if diff == "True":
         diffResponse=diffReport(preDict,currentDict)
         with open('db/diff.json', 'w') as fp:
             json.dump(diffResponse, fp)
         diffDF = pd.DataFrame(diffResponse)
-        diffDF = diffDF.sort_values(by = 'diffStatus',ascending = False)
+        try:
+            diffDF = diffDF.sort_values(by = 'diffStatus',ascending = False)
+        except:
+            diffDF = diffDF
         htmlFile = "templates/diff.html"
         generateHTMLFile(diffDF,htmlFile)
         print("Completed Successfully - view the diff report")
@@ -278,3 +281,4 @@ def main():
         print("Completed Successfully - view the pre report")
 
 main()
+
