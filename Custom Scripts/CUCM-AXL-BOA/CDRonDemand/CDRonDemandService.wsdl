@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://schemas.cisco.com/ast/soap" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://schemas.cisco.com/ast/soap" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/">
+    <wsdl:types>
+        <schema elementFormDefault="qualified" targetNamespace="http://schemas.cisco.com/ast/soap" xmlns="http://www.w3.org/2001/XMLSchema">
+            <element name="get_file_list">
+                <complexType>
+                    <sequence>
+                        <element name="in0" type="xsd:string"/>
+                        <element name="in1" type="xsd:string"/>
+                        <element name="in2" type="xsd:boolean"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="get_file_listResponse">
+                <complexType>
+                    <sequence>
+                        <element name="get_file_listReturn" type="tns:ArrayOfFileName"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <complexType name="ArrayOfFileName">
+                <sequence>
+                    <element maxOccurs="unbounded" minOccurs="0" name="FileName" nillable="true" type="xsd:string"/>
+                </sequence>
+            </complexType>
+            <element name="get_file">
+                <complexType>
+                    <sequence>
+                        <element name="in0" type="xsd:string"/>
+                        <element name="in1" type="xsd:string"/>
+                        <element name="in2" type="xsd:string"/>
+                        <element name="in3" type="xsd:string"/>
+                        <element name="in4" type="xsd:string"/>
+                        <element name="in5" type="xsd:boolean"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="get_fileResponse">
+                <complexType/>
+            </element>
+        </schema>
+    </wsdl:types>
+    <wsdl:message name="get_file_listResponse">
+        <wsdl:part name="parameters" element="tns:get_file_listResponse">
+    </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="get_fileRequest">
+        <wsdl:part name="parameters" element="tns:get_file">
+    </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="get_fileResponse">
+        <wsdl:part name="parameters" element="tns:get_fileResponse">
+    </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="get_file_listRequest">
+        <wsdl:part name="parameters" element="tns:get_file_list">
+    </wsdl:part>
+    </wsdl:message>
+    <wsdl:portType name="CDRonDemand">
+        <wsdl:operation name="get_file_list">
+            <wsdl:input name="get_file_listRequest" message="tns:get_file_listRequest">
+    </wsdl:input>
+            <wsdl:output name="get_file_listResponse" message="tns:get_file_listResponse">
+    </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="get_file">
+            <wsdl:input name="get_fileRequest" message="tns:get_fileRequest">
+    </wsdl:input>
+            <wsdl:output name="get_fileResponse" message="tns:get_fileResponse">
+    </wsdl:output>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="CDRonDemandSoapBinding" type="tns:CDRonDemand">
+        <wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="get_file_list">
+            <wsdlsoap:operation soapAction="get_file_list"/>
+            <wsdl:input name="get_file_listRequest">
+                <wsdlsoap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="get_file_listResponse">
+                <wsdlsoap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="get_file">
+            <wsdlsoap:operation soapAction="get_file"/>
+            <wsdl:input name="get_fileRequest">
+                <wsdlsoap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="get_fileResponse">
+                <wsdlsoap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="CDRonDemandService">
+        <wsdl:port name="CDRonDemand" binding="tns:CDRonDemandSoapBinding">
+            <wsdlsoap:address location="https://localhost:8443/CDRonDemandService2/services/CDRonDemandService"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>
