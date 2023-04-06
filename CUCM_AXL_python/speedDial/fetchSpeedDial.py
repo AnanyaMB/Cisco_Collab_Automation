@@ -44,9 +44,3 @@ with open("speedDial_dump.csv", "w") as f:
     wr = csv.DictWriter(f, delimiter=",",fieldnames=list(deviceList[0].keys()))
     wr.writeheader()
     wr.writerows(deviceList)
-
-
-
-
-       
-
